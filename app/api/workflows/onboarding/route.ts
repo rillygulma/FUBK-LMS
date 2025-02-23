@@ -2,7 +2,18 @@ import { serve } from "@upstash/workflow/nextjs";
 import { db } from "@/database/drizzle";
 import { users } from "@/database/schema";
 import { eq } from "drizzle-orm";
-import { sendEmail } from "@/lib/workflow";
+import nodemailer from "nodemailer";
+
+// Nodemailer Transporter Configuration
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: Number(process.env.SMTP_PORT),
+  secure: process.env.SMTP_SECURE === "true", // true for 465, false for other ports
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
 
 type UserState = "non-active" | "active";
 
@@ -38,16 +49,21 @@ const getUserState = async (email: string): Promise<UserState> => {
   return "active";
 };
 
+const sendEmail = async (toEmail: string, subject: string, message: string) => {
+  await transporter.sendMail({
+    from: process.env.SMTP_USER,
+    to: toEmail,
+    subject,
+    text: message,
+  });
+};
+
 export const { POST } = serve<InitialData>(async (context) => {
   const { email, fullName } = context.requestPayload;
 
   // Welcome Email
   await context.run("new-signup", async () => {
-    await sendEmail({
-      email,
-      subject: "Welcome to the platform",
-      message: `Welcome ${fullName}!`,
-    });
+    await sendEmail(email, "Welcome to FUBK Library Platform!", `Welcome ${fullName} to FUBK Library Platform! We're excited to have you here and look forward to serving you with the best resources and services! 🎉`);
   });
 
   await context.sleep("wait-for-3-days", 60 * 60 * 24 * 3);
@@ -59,19 +75,11 @@ export const { POST } = serve<InitialData>(async (context) => {
 
     if (state === "non-active") {
       await context.run("send-email-non-active", async () => {
-        await sendEmail({
-          email,
-          subject: "Are you still there?",
-          message: `Hey ${fullName}, we miss you!`,
-        });
+        await sendEmail(email, "We Miss You!", `Hey ${fullName}, we miss you! Come back and check out what's new!`);
       });
     } else if (state === "active") {
       await context.run("send-email-active", async () => {
-        await sendEmail({
-          email,
-          subject: "Welcome back!",
-          message: `Welcome back ${fullName}!`,
-        });
+        await sendEmail(email, "Welcome Back!", `Welcome back ${fullName}! 🎉 Glad to have you here again!`);
       });
     }
 

@@ -1,35 +1,42 @@
+import nodemailer from "nodemailer";
 import { Client as WorkflowClient } from "@upstash/workflow";
-import { Client as QStashClient, resend } from "@upstash/qstash";
 import config from "@/lib/config";
 
+// Initialize Upstash Workflow and QStash Clients
 export const workflowClient = new WorkflowClient({
   baseUrl: config.env.upstash.qstashUrl,
   token: config.env.upstash.qstashToken,
 });
 
-const qstashClient = new QStashClient({
-  token: config.env.upstash.qstashToken,
+
+// Create Nodemailer Transporter
+const transporter = nodemailer.createTransport({
+  host: config.env.nodemailer.smtpHost,
+  port: Number(config.env.nodemailer.smtpPort),
+  secure: config.env.nodemailer.smtpSecure,
+  auth: {
+    user: config.env.nodemailer.smtpUser,
+    pass: config.env.nodemailer.smtpPassword,
+  },
 });
 
+// Function to send Email
 export const sendEmail = async ({
-  email,
+  toEmail,
   subject,
   message,
 }: {
-  email: string;
+  toEmail: string;
   subject: string;
   message: string;
 }) => {
-  await qstashClient.publishJSON({
-    api: {
-      name: "email",
-      provider: resend({ token: config.env.resendToken }),
-    },
-    body: {
-      from: "FUBK LIBRARY <library@fubk.edu.ng>",
-      to: [email],
-      subject,
-      html: message,
-    },
+  await transporter.sendMail({
+    from: config.env.nodemailer.smtpUser, // Sender email
+    to: toEmail,
+    subject,
+    text: message,
   });
+
+  // Optionally log success
+  console.log(`Email sent to ${toEmail}`);
 };
