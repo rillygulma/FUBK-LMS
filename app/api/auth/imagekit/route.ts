@@ -11,12 +11,14 @@ const {
 const imagekit = new ImageKit({ publicKey, privateKey, urlEndpoint });
 
 export async function GET() {
-  const response = NextResponse.json(imagekit.getAuthenticationParameters());
+  const authParams = imagekit.getAuthenticationParameters();
+  const response = NextResponse.json(authParams);
 
-  // Add CORS headers
-  response.headers.set("Access-Control-Allow-Origin", "https://fubk-5w55hampu-rilwanu-idris-projects.vercel.app");
+  // Set CORS headers explicitly
+  response.headers.set("Access-Control-Allow-Origin", "https://fubk-5w55hampu-rilwanu-idris-projects.vercel.app"); 
   response.headers.set("Access-Control-Allow-Methods", "GET, OPTIONS");
   response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  response.headers.set("Access-Control-Allow-Credentials", "true");
 
   return response;
 }
@@ -25,9 +27,10 @@ export async function GET() {
 export async function OPTIONS() {
   const response = new NextResponse(null, { status: 204 });
 
-  response.headers.set("Access-Control-Allow-Origin", "https://fubk-5w55hampu-rilwanu-idris-projects.vercel.app");
+  response.headers.set("Access-Control-Allow-Origin", "*");
   response.headers.set("Access-Control-Allow-Methods", "GET, OPTIONS");
   response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  response.headers.set("Access-Control-Allow-Credentials", "true");
 
   return response;
 }
